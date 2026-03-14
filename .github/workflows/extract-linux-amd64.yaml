@@ -1,4 +1,4 @@
-name: Extract image for linux-amd64
+name: "\U0001F4E6 Extract Base Image (amd64)"
 
 on:
   workflow_call:

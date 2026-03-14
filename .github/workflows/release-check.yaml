@@ -1,4 +1,4 @@
-name: Check for new releases
+name: "\U0001F50D Check for New Releases"
 
 on:
   workflow_dispatch:
@@ -142,35 +142,23 @@ jobs:
         run: |
           gh pr merge "updates/${{ env.UOS_VERSION }}" --merge --delete-branch
 
-  build-linux-amd64:
-    needs: [release-check, extract-linux-amd64, merge-changes]
+  publish:
+    needs: [release-check, extract-linux-amd64, extract-linux-arm64, merge-changes]
     if: needs.release-check.outputs.RELEASED == 'false'
-    uses: ./.github/workflows/build-linux-amd64.yaml
+    uses: ./.github/workflows/publish.yml
     with:
       version: ${{ needs.release-check.outputs.UOS_VERSION }}
-      latest: false
-      base_tag: ${{ needs.extract-linux-amd64.outputs.PODMAN_IMAGE_TAG }}-linux-amd64
-
-  build-linux-arm64:
-    needs: [release-check, extract-linux-arm64, merge-changes]
-    if: needs.release-check.outputs.RELEASED == 'false'
-    uses: ./.github/workflows/build-linux-arm64.yaml
-    with:
-      version: ${{ needs.release-check.outputs.UOS_VERSION }}
-      latest: false
-      base_tag: ${{ needs.extract-linux-arm64.outputs.PODMAN_IMAGE_TAG }}-linux-arm64
-
-  build-multiarch:
-    needs: [release-check, build-linux-amd64, build-linux-arm64]
-    if: needs.release-check.outputs.RELEASED == 'false'
-    uses: ./.github/workflows/build-multiarch.yaml
-    with:
-      tag: ${{ needs.release-check.outputs.UOS_VERSION }}
-      latest: true
+      base_tag_amd64: ${{ needs.extract-linux-amd64.outputs.PODMAN_IMAGE_TAG }}-linux-amd64
+      base_tag_arm64: ${{ needs.extract-linux-arm64.outputs.PODMAN_IMAGE_TAG }}-linux-arm64
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      security-events: write
 
   create-release:
     runs-on: ubuntu-latest
-    needs: [release-check, build-multiarch]
+    needs: [release-check, publish]
     if: needs.release-check.outputs.RELEASED == 'false'
     timeout-minutes: 10
     permissions:

@@ -1,0 +1,291 @@
+name: "\U0001F680 Publish Docker Image"
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      base_tag_amd64:
+        required: true
+        type: string
+      base_tag_arm64:
+        required: true
+        type: string
+  push:
+    branches: ['main', 'dev']
+    paths-ignore:
+      - 'kubernetes/**'
+      - '**.md'
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  security-events: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-amd64:
+    name: Build linux/amd64
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine build args
+        id: args
+        run: |
+          if [ -n "${{ inputs.base_tag_amd64 }}" ]; then
+            echo "base_tag=${{ inputs.base_tag_amd64 }}" >> "$GITHUB_OUTPUT"
+          else
+            BASE_TAG=$(grep -oP '(?<=ARG BASE_TAG=).*' Dockerfile | head -n1)
+            echo "base_tag=$BASE_TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine tags
+        id: tags
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ -n "$VERSION" ]; then
+            echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-linux-amd64" >> "$GITHUB_OUTPUT"
+          else
+            REF_NAME="${GITHUB_REF_NAME}"
+            echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${REF_NAME}-linux-amd64" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            BASE_TAG=${{ steps.args.outputs.base_tag }}
+            FIRMWARE_PLATFORM=linux-x64
+          cache-from: type=gha,scope=amd64
+          cache-to: type=gha,scope=amd64,mode=max
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ inputs.version || github.ref_name }}
+
+  build-arm64:
+    name: Build linux/arm64
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine build args
+        id: args
+        run: |
+          if [ -n "${{ inputs.base_tag_arm64 }}" ]; then
+            echo "base_tag=${{ inputs.base_tag_arm64 }}" >> "$GITHUB_OUTPUT"
+          else
+            BASE_TAG=$(grep -oP '(?<=ARG BASE_TAG=).*' Dockerfile | head -n1 | sed 's/-linux-amd64$/-linux-arm64/')
+            echo "base_tag=$BASE_TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine tags
+        id: tags
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ -n "$VERSION" ]; then
+            echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-linux-arm64" >> "$GITHUB_OUTPUT"
+          else
+            REF_NAME="${GITHUB_REF_NAME}"
+            echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${REF_NAME}-linux-arm64" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            BASE_TAG=${{ steps.args.outputs.base_tag }}
+            FIRMWARE_PLATFORM=linux-arm64
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,scope=arm64,mode=max
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ inputs.version || github.ref_name }}
+
+  manifest:
+    name: Create multi-arch manifest
+    needs: [build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      digest: ${{ steps.inspect.outputs.digest }}
+    permissions:
+      packages: write
+
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine tags
+        id: tags
+        run: |
+          VERSION="${{ inputs.version }}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          if [ -n "$VERSION" ]; then
+            echo "version_tag=${IMAGE}:${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "latest_tag=${IMAGE}:latest" >> "$GITHUB_OUTPUT"
+            echo "source_amd64=${IMAGE}:${VERSION}-linux-amd64" >> "$GITHUB_OUTPUT"
+            echo "source_arm64=${IMAGE}:${VERSION}-linux-arm64" >> "$GITHUB_OUTPUT"
+          else
+            REF_NAME="${GITHUB_REF_NAME}"
+            echo "version_tag=${IMAGE}:${REF_NAME}" >> "$GITHUB_OUTPUT"
+            LATEST=""
+            if [ "$REF_NAME" = "main" ]; then
+              LATEST="${IMAGE}:latest"
+            fi
+            echo "latest_tag=${LATEST}" >> "$GITHUB_OUTPUT"
+            echo "source_amd64=${IMAGE}:${REF_NAME}-linux-amd64" >> "$GITHUB_OUTPUT"
+            echo "source_arm64=${IMAGE}:${REF_NAME}-linux-arm64" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create and push manifest
+        run: |
+          docker manifest create "${{ steps.tags.outputs.version_tag }}" \
+            "${{ steps.tags.outputs.source_amd64 }}" \
+            "${{ steps.tags.outputs.source_arm64 }}"
+          docker manifest push "${{ steps.tags.outputs.version_tag }}"
+
+          LATEST="${{ steps.tags.outputs.latest_tag }}"
+          if [ -n "$LATEST" ]; then
+            docker manifest create "$LATEST" \
+              "${{ steps.tags.outputs.source_amd64 }}" \
+              "${{ steps.tags.outputs.source_arm64 }}"
+            docker manifest push "$LATEST"
+          fi
+
+      - name: Get manifest digest
+        id: inspect
+        run: |
+          DIGEST=$(docker manifest inspect "${{ steps.tags.outputs.version_tag }}" -v | jq -r '.digest // empty' 2>/dev/null || true)
+          if [ -z "$DIGEST" ]; then
+            DIGEST=$(docker buildx imagetools inspect "${{ steps.tags.outputs.version_tag }}" --raw | sha256sum | awk '{print "sha256:"$1}')
+          fi
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+  scan:
+    name: Security scan & sign
+    needs: [manifest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      security-events: write
+
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine image ref
+        id: ref
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ -n "$VERSION" ]; then
+            echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.ref.outputs.image }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image with cosign (keyless)
+        env:
+          DIGEST: ${{ needs.manifest.outputs.digest }}
+        run: |
+          IMAGE="${{ steps.ref.outputs.image }}"
+          if [ -n "$DIGEST" ]; then
+            cosign sign --yes "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${DIGEST}"
+          else
+            cosign sign --yes "${IMAGE}"
+          fi
+
+      - name: Generate SBOM with syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.ref.outputs.image }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Attach SBOM to image
+        env:
+          DIGEST: ${{ needs.manifest.outputs.digest }}
+        run: |
+          if [ -n "$DIGEST" ]; then
+            cosign attach sbom --sbom sbom.spdx.json "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${DIGEST}"
+          fi
