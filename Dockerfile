@@ -2,7 +2,7 @@ ARG BASE_VERSION=0.0.54
 ARG TARGETARCH
 FROM ghcr.io/lemker/uosserver:${BASE_VERSION}-linux-${TARGETARCH}
 
-LABEL org.opencontainers.image.source="https://github.com/lemker/unifi-os-server" \
+LABEL org.opencontainers.image.source="https://github.com/jsoyer/unifi-os-server" \
       org.opencontainers.image.description="UniFi OS Server for Docker and Kubernetes" \
       org.opencontainers.image.licenses="MIT"
 

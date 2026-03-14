@@ -24,7 +24,7 @@ spec:
       terminationGracePeriodSeconds: 120
       containers:
       - name: unifi-os-server
-        image: ghcr.io/lemker/unifi-os-server:latest
+        image: ghcr.io/jsoyer/unifi-os-server:latest
         env:
         - name: UOS_SYSTEM_IP
           value: "unifi.example.com"
