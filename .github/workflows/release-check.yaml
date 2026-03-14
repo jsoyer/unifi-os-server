@@ -117,8 +117,8 @@ jobs:
 
       - name: Update Dockerfile
         run: |
-          sed -i "s/^ARG BASE_TAG.*/ARG BASE_TAG=$PODMAN_IMAGE_TAG-linux-amd64/" Dockerfile
-          sed -i "s/UOS_SERVER_VERSION=.*/UOS_SERVER_VERSION=\"$UOS_VERSION\" \\\\/" Dockerfile
+          sed -i "s/^ARG BASE_VERSION=.*/ARG BASE_VERSION=$PODMAN_IMAGE_TAG/" Dockerfile
+          sed -i "s/UOS_SERVER_VERSION=.*/UOS_SERVER_VERSION=\"$UOS_VERSION\"/" Dockerfile
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v8
@@ -135,7 +135,7 @@ jobs:
 
             - Version: **${{ env.UOS_VERSION }}**
             - Base image tag: `${{ env.PODMAN_IMAGE_TAG }}`
-            - Updated: `Dockerfile` (`ARG BASE_TAG`, `UOS_SERVER_VERSION`)
+            - Updated: `Dockerfile` (`ARG BASE_VERSION`, `UOS_SERVER_VERSION`)
           labels: |
             automated
             dependencies

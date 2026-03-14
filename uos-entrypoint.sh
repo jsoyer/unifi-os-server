@@ -17,7 +17,16 @@ if [ ! -f /data/uos_uuid ]; then
     fi
 fi
 
-# Read version from package.json and write version string
+# Detect firmware platform from architecture if not set
+if [ -z "${FIRMWARE_PLATFORM:-}" ]; then
+    case "$(uname -m)" in
+        x86_64)  FIRMWARE_PLATFORM="linux-x64" ;;
+        aarch64) FIRMWARE_PLATFORM="linux-arm64" ;;
+        *)       FIRMWARE_PLATFORM="linux-$(uname -m)" ;;
+    esac
+fi
+
+# Write version and platform strings
 echo "Setting UOS_SERVER_VERSION to $UOS_SERVER_VERSION"
 echo "UOSSERVER.0000000.$UOS_SERVER_VERSION.0000000.000000.0000" > /usr/lib/version
 echo "Setting FIRMWARE_PLATFORM to $FIRMWARE_PLATFORM"
