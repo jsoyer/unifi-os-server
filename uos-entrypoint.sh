@@ -47,9 +47,10 @@ fi
 
 # Initialize mongodb lib dirs
 MONGODB_LIB_DIR="/var/lib/mongodb"
-if [ -n "$MONGODB_LIB_DIR" ] && [ -d "$MONGODB_LIB_DIR" ]; then
-    chown -R mongodb:mongodb "$MONGODB_LIB_DIR"
+if [ ! -d "$MONGODB_LIB_DIR" ]; then
+    mkdir -p "$MONGODB_LIB_DIR"
 fi
+chown -R mongodb:mongodb "$MONGODB_LIB_DIR"
 
 # Initialize rabbitmq log dirs
 RABBITMQ_LOG_DIR="/var/log/rabbitmq"
@@ -101,8 +102,10 @@ if [ -n "${UOS_SYSTEM_IP+1}" ]; then
     if [ ! -f "$UNIFI_SYSTEM_PROPERTIES" ]; then
         echo "system_ip=$UOS_SYSTEM_IP" >> "$UNIFI_SYSTEM_PROPERTIES"
     else
-        if grep -q "^system_ip=.*" "$UNIFI_SYSTEM_PROPERTIES"; then
-            sed -i "s|^system_ip=.*|system_ip=$UOS_SYSTEM_IP|" "$UNIFI_SYSTEM_PROPERTIES"
+        if grep -q "^system_ip=" "$UNIFI_SYSTEM_PROPERTIES"; then
+            awk -v ip="$UOS_SYSTEM_IP" '/^system_ip=/{print "system_ip="ip; next}1' \
+                "$UNIFI_SYSTEM_PROPERTIES" > "${UNIFI_SYSTEM_PROPERTIES}.tmp" \
+                && mv "${UNIFI_SYSTEM_PROPERTIES}.tmp" "$UNIFI_SYSTEM_PROPERTIES"
         else
             echo "system_ip=$UOS_SYSTEM_IP" >> "$UNIFI_SYSTEM_PROPERTIES"
         fi

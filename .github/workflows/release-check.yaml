@@ -8,7 +8,7 @@ on:
 jobs:
   release-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 1
+    timeout-minutes: 5
     permissions:
       contents: read
     outputs:
@@ -43,6 +43,12 @@ jobs:
             exit 1
           fi
 
+          # Validate version format to prevent injection
+          if ! echo "$UOS_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+([.-][a-zA-Z0-9]+)*$'; then
+            echo "Invalid version format: $UOS_VERSION" >&2
+            exit 1
+          fi
+
           # Export to env
           echo "UOS_VERSION=$UOS_VERSION" >> "$GITHUB_ENV"
 
@@ -74,14 +80,14 @@ jobs:
 
   extract-linux-amd64:
     needs: release-check
-    if: "${{ needs.release-check.outputs.RELEASED == 'false' }}"
+    if: needs.release-check.outputs.RELEASED == 'false'
     uses: ./.github/workflows/extract-linux-amd64.yaml
     with:
       UOS_DOWNLOAD: ${{ needs.release-check.outputs.UOS_DOWNLOAD_AMD64 }}
 
   extract-linux-arm64:
     needs: release-check
-    if: "${{ needs.release-check.outputs.RELEASED == 'false' }}"
+    if: needs.release-check.outputs.RELEASED == 'false'
     uses: ./.github/workflows/extract-linux-arm64.yaml
     with:
       UOS_DOWNLOAD: ${{ needs.release-check.outputs.UOS_DOWNLOAD_ARM64 }}
@@ -89,7 +95,7 @@ jobs:
   merge-changes:
     runs-on: ubuntu-latest
     needs: [release-check, extract-linux-amd64, extract-linux-arm64]
-    if: "${{ needs.release-check.outputs.RELEASED == 'false' }}"
+    if: needs.release-check.outputs.RELEASED == 'false'
     timeout-minutes: 10
     permissions:
       contents: write
@@ -138,25 +144,25 @@ jobs:
 
   build-linux-amd64:
     needs: [release-check, extract-linux-amd64, merge-changes]
-    if: "${{ needs.release-check.outputs.RELEASED == 'false' }}"
+    if: needs.release-check.outputs.RELEASED == 'false'
     uses: ./.github/workflows/build-linux-amd64.yaml
     with:
       version: ${{ needs.release-check.outputs.UOS_VERSION }}
-      latest: true
+      latest: false
       base_tag: ${{ needs.extract-linux-amd64.outputs.PODMAN_IMAGE_TAG }}-linux-amd64
 
   build-linux-arm64:
     needs: [release-check, extract-linux-arm64, merge-changes]
-    if: "${{ needs.release-check.outputs.RELEASED == 'false' }}"
+    if: needs.release-check.outputs.RELEASED == 'false'
     uses: ./.github/workflows/build-linux-arm64.yaml
     with:
       version: ${{ needs.release-check.outputs.UOS_VERSION }}
-      latest: true
+      latest: false
       base_tag: ${{ needs.extract-linux-arm64.outputs.PODMAN_IMAGE_TAG }}-linux-arm64
 
   build-multiarch:
     needs: [release-check, build-linux-amd64, build-linux-arm64]
-    if: "${{ needs.release-check.outputs.RELEASED == 'false' }}"
+    if: needs.release-check.outputs.RELEASED == 'false'
     uses: ./.github/workflows/build-multiarch.yaml
     with:
       tag: ${{ needs.release-check.outputs.UOS_VERSION }}
@@ -165,7 +171,7 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     needs: [release-check, build-multiarch]
-    if: "${{ needs.release-check.outputs.RELEASED == 'false' }}"
+    if: needs.release-check.outputs.RELEASED == 'false'
     timeout-minutes: 10
     permissions:
       contents: write
