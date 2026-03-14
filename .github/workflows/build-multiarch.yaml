@@ -1,4 +1,4 @@
-name: Build multiarch image for uosserver
+name: Build multiarch manifest
 
 on:
   workflow_call:
@@ -6,22 +6,32 @@ on:
       tag:
         required: true
         type: string
+      latest:
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       tag:
-        description: "Image tag for uosserver"
+        description: "Image tag for manifest"
         required: true
         type: string
+      latest:
+        description: "Set latest tag"
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
-  REPO_OWNER: ${{ github.repository_owner }}
-  IMAGE_NAME: uosserver
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-multiarch:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      packages: write
     steps:
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -34,7 +44,8 @@ jobs:
         uses: int128/docker-manifest-create-action@v2
         with:
           tags: |
-            ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}-multiarch
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}
+            ${{ inputs.latest && format('{0}/{1}:latest', env.REGISTRY, env.IMAGE_NAME) || '' }}
           sources: |
-            ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}-linux-amd64
-            ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}-linux-arm64
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}-linux-amd64
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}-linux-arm64

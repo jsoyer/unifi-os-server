@@ -27,25 +27,26 @@ jobs:
   extract-image:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      packages: write
     outputs:
       PODMAN_IMAGE_TAG: ${{ steps.tag.outputs.PODMAN_IMAGE_TAG }}
-  
-    steps:     
+
+    steps:
       - name: Cleanup disk
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
 
       - name: Install UniFi OS Server
-        run: |          
+        run: |
           mkdir -p /home/runner/.config/containers
           chmod 755 /home/runner /home/runner/.config /home/runner/.config/containers
           touch /home/runner/.config/containers/storage.conf
           chmod 755 /home/runner/.config/containers/storage.conf
-          curl -o unifi-os-server "${{ inputs.UOS_DOWNLOAD }}"
+          curl -fSL -o unifi-os-server "${{ inputs.UOS_DOWNLOAD }}"
           sudo chmod +x unifi-os-server
           echo "y" | sudo ./unifi-os-server
-        continue-on-error: true
-      
+
       - name: Get uosserver image for runner
         run: |
           mkdir -p /home/runner/.local/share/containers/storage/overlay
@@ -63,12 +64,12 @@ jobs:
           username: ${{ env.REGISTRY_USER }}
           password: ${{ env.REGISTRY_PASSWORD }}
           registry: ${{ env.REGISTRY }}
-      
+
       - name: Upload uosserver image
         id: tag
         run: |
-          PODMAN_IMAGE_TAG=$(podman images uosserver --noheading | awk '{print $2}')
-          PODMAN_IMAGE_ID=$(podman images uosserver --noheading | awk '{print $3}')
-          podman push $PODMAN_IMAGE_ID $REGISTRY/$REPO_OWNER/uosserver:$PODMAN_IMAGE_TAG-linux-amd64
+          PODMAN_IMAGE_TAG=$(podman images uosserver --noheading | head -n1 | awk '{print $2}')
+          PODMAN_IMAGE_ID=$(podman images uosserver --noheading | head -n1 | awk '{print $3}')
+          podman push "$PODMAN_IMAGE_ID" "$REGISTRY/$REPO_OWNER/uosserver:$PODMAN_IMAGE_TAG-linux-amd64"
 
           echo "PODMAN_IMAGE_TAG=$PODMAN_IMAGE_TAG" >> "$GITHUB_OUTPUT"

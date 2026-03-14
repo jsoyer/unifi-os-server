@@ -5,7 +5,10 @@ metadata:
   namespace: unifi
   labels:
     app: unifi-os-server
+    app.kubernetes.io/name: unifi-os-server
+    app.kubernetes.io/component: server
 spec:
+  replicas: 1
   strategy:
     type: Recreate
   selector:
@@ -15,7 +18,10 @@ spec:
     metadata:
       labels:
         app: unifi-os-server
+        app.kubernetes.io/name: unifi-os-server
+        app.kubernetes.io/component: server
     spec:
+      terminationGracePeriodSeconds: 120
       containers:
       - name: unifi-os-server
         image: ghcr.io/lemker/unifi-os-server:latest
@@ -24,6 +30,12 @@ spec:
           value: "unifi.example.com"
         securityContext:
           privileged: true
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "2Gi"
+          limits:
+            memory: "4Gi"
         volumeMounts:
         - name: unifi-os-server-data
           mountPath: /persistent
@@ -46,12 +58,27 @@ spec:
         - name: unifi-os-server-data
           mountPath: /etc/rabbitmq/ssl
           subPath: rabbitmq
+        startupProbe:
+          httpGet:
+            path: /api/ping
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
         livenessProbe:
           httpGet:
             path: /api/ping
             port: 80
-          initialDelaySeconds: 10          
           periodSeconds: 60
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/ping
+            port: 80
+          periodSeconds: 15
           timeoutSeconds: 5
           successThreshold: 1
           failureThreshold: 3

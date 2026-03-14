@@ -3,7 +3,10 @@ kind: Service
 metadata:
   name: unifi-os-server-webui-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: webui
     port: 443
@@ -18,7 +21,10 @@ kind: Service
 metadata:
   name: unifi-os-server-rtp-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: rtp
     port: 5005
@@ -33,7 +39,10 @@ kind: Service
 metadata:
   name: unifi-os-server-id-hub-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: id-hub
     port: 9543
@@ -48,7 +57,10 @@ kind: Service
 metadata:
   name: unifi-os-server-mobile-speedtest-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: mobile-speedtest
     port: 6789
@@ -63,7 +75,10 @@ kind: Service
 metadata:
   name: unifi-os-server-communication-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: communication
     port: 8080
@@ -78,7 +93,10 @@ kind: Service
 metadata:
   name: unifi-os-server-network-app-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: network-app
     port: 8443
@@ -93,7 +111,10 @@ kind: Service
 metadata:
   name: unifi-os-server-hotspot-secured-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: hotspot-secured
     port: 8444
@@ -108,7 +129,10 @@ kind: Service
 metadata:
   name: unifi-os-server-stun-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: stun
     port: 3478
@@ -123,7 +147,10 @@ kind: Service
 metadata:
   name: unifi-os-server-syslog-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: syslog
     port: 5514
@@ -138,7 +165,10 @@ kind: Service
 metadata:
   name: unifi-os-server-discovery-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: discovery
     port: 10003
@@ -153,7 +183,10 @@ kind: Service
 metadata:
   name: unifi-os-server-site-supervisor-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: site-supervisor
     port: 11084
@@ -168,7 +201,10 @@ kind: Service
 metadata:
   name: unifi-os-server-aqmps-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: aqmps
     port: 5671
@@ -183,7 +219,10 @@ kind: Service
 metadata:
   name: unifi-os-server-hotspot-redirect-0-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: hotspot-redirect-0
     port: 8880
@@ -198,7 +237,10 @@ kind: Service
 metadata:
   name: unifi-os-server-hotspot-redirect-1-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: hotspot-redirect-1
     port: 8881
@@ -213,7 +255,10 @@ kind: Service
 metadata:
   name: unifi-os-server-hotspot-redirect-2-svc
   namespace: unifi
+  labels:
+    app.kubernetes.io/name: unifi-os-server
 spec:
+  type: ClusterIP
   ports:
   - name: hotspot-redirect-2
     port: 8882

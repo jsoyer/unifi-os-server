@@ -1,0 +1,6 @@
+.git
+.github
+kubernetes
+*.md
+docker-compose.yaml
+renovate.json
