@@ -3,31 +3,52 @@ services:
   unifi-os-server:
     image: ghcr.io/jsoyer/unifi-os-server:latest
     container_name: unifi-os-server
+    # Required: systemd needs cgroup access
     privileged: true
     environment:
-      - UOS_SYSTEM_IP=unifi.example.com
+      # REQUIRED: set to your hostname or IP address
+      - UOS_SYSTEM_IP=${UOS_SYSTEM_IP:?Set UOS_SYSTEM_IP in .env or environment}
+      # Optional: override hardware platform detection (e.g., synology)
+      # - HARDWARE_PLATFORM=synology
     volumes:
-      - /path/to/unifi-os-server/persistent:/persistent
-      - /path/to/unifi-os-server/var-log:/var/log
-      - /path/to/unifi-os-server/data:/data
-      - /path/to/unifi-os-server/srv:/srv
-      - /path/to/unifi-os-server/var-lib-unifi:/var/lib/unifi
-      - /path/to/unifi-os-server/var-lib-mongodb:/var/lib/mongodb
-      - /path/to/unifi-os-server/etc-rabbitmq-ssl:/etc/rabbitmq/ssl
+      - persistent:/persistent
+      - log:/var/log
+      - data:/data
+      - srv:/srv
+      - unifi:/var/lib/unifi
+      - mongodb:/var/lib/mongodb
+      - rabbitmq-ssl:/etc/rabbitmq/ssl
     ports:
-      - 11443:443
-      - 5005:5005 # Optional
-      - 9543:9543 # Optional
-      - 6789:6789 # Optional
-      - 8080:8080
-      - 8443:8443 # Optional
-      - 8444:8444 # Optional
-      - 3478:3478/udp
-      - 5514:5514/udp # Optional
-      - 10003:10003/udp
-      - 11084:11084 # Optional
-      - 5671:5671 # Optional
-      - 8880:8880 # Optional
-      - 8881:8881 # Optional
-      - 8882:8882 # Optional
+      # Required
+      - "11443:443"       # Web UI
+      - "8080:8080"       # Device communication
+      - "3478:3478/udp"   # STUN (adoption + remote management)
+      - "10003:10003/udp" # Device discovery
+      # Optional - uncomment as needed
+      # - "8443:8443"       # Network Application
+      # - "5005:5005"       # RTP control
+      # - "9543:9543"       # Identity Hub
+      # - "6789:6789"       # Mobile speed test
+      # - "8444:8444"       # Hotspot portal (HTTPS)
+      # - "8880:8880"       # Hotspot redirect
+      # - "8881:8881"       # Hotspot redirect
+      # - "8882:8882"       # Hotspot redirect
+      # - "11084:11084"     # Site Supervisor
+      # - "5671:5671"       # AQMPS
+      # - "5514:5514/udp"   # Remote syslog
+    stop_grace_period: 120s
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  persistent:
+  log:
+  data:
+  srv:
+  unifi:
+  mongodb:
+  rabbitmq-ssl:
