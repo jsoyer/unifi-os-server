@@ -20,7 +20,7 @@ on:
       - '**.md'
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   id-token: write
   security-events: write
@@ -289,3 +289,42 @@ jobs:
           if [ -n "$DIGEST" ]; then
             cosign attach sbom --sbom sbom.spdx.json "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${DIGEST}"
           fi
+
+  create-release:
+    name: Create GitHub release
+    needs: [scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from Dockerfile
+        id: version
+        run: |
+          VERSION=$(grep -oP '(?<=UOS_SERVER_VERSION=")([^"]+)' Dockerfile)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if release already exists
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ steps.version.outputs.version }}" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.version }}" \
+            --title "${{ steps.version.outputs.version }}" \
+            --generate-notes
