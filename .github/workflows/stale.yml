@@ -1,4 +1,4 @@
-name: "\U0001F9F9 Close Stale Issues & PRs"
+name: "🧹 Close Stale Issues & PRs"
 
 on:
   schedule:

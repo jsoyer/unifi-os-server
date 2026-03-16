@@ -1,4 +1,4 @@
-name: "\U0001F4E6 Extract Base Image (arm64)"
+name: "📦 Extract Base Image (arm64)"
 
 on:
   workflow_call:

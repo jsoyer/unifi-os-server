@@ -1,4 +1,4 @@
-name: "\U0001F6E0\uFE0F Build & Test"
+name: "🛠️ Build & Test"
 
 on:
   pull_request:

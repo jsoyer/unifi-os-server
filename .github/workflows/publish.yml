@@ -1,4 +1,4 @@
-name: "\U0001F680 Publish Docker Image"
+name: "🚀 Publish Docker Image"
 
 on:
   workflow_dispatch:
