@@ -65,7 +65,7 @@ jobs:
           echo "UOS_DOWNLOAD_ARM64=$UOS_DOWNLOAD_ARM64"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check if release already exists
         id: release
@@ -114,7 +114,7 @@ jobs:
           fi
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Update Dockerfile
         run: |
